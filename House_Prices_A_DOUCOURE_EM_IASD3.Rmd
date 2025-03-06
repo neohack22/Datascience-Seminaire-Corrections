@@ -1,0 +1,1488 @@
+---
+title: "Projet Statistiques : House Prices"
+subtitle : "MASTER IADS 3"
+author : 'Abdoulaye DOUCOURE'
+output: pdf_document
+header-includes:
+   - \usepackage{pifont} 
+   - \usepackage{manfnt}
+   - \usepackage{mdframed}
+   - \usepackage{systeme}
+   - \usepackage{txfonts}
+   - \newcommand{\cH}{\mathcal{H}}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+\tableofcontents
+
+\newpage
+
+------------------------------------------------------------------------
+
+Instructions
+
+• Ce projet a pour but la mise en œuvre des méthodes statistiques que
+nous avons etudiées sur un ensemble de données réelles.
+
+• Vous rédigerez votre rapport au format Rmarkdown.
+
+Votre soumission doit contenir deux fichiers : le fichier Rmarkdown
+contenant tous les codes et le fichier compilé au format pdf.
+
+• Votre code doit être clairement commenté.
+
+• Votre rapport devrait comporter les sections suivantes : 1.
+Introduction.
+
+Rédigez une courte introduction décrivant le problème de recherche.
+
+Énoncez clairement l'hypothèse de recherche à la fin. 2. Analyse
+exploratoire des données et modélisation.
+
+Fournir des résumés sous forme de graphiques et de statistiques
+élémentaires pour toutes les variables et paires de variables.
+
+Utiliser éventuellement Cullen-Frey pour l'étude des distributions.
+
+Décrivez vos résultats. 3. Validité des modeles.
+
+Commencez par construire un modèle de régression linéaire multiple qui
+vous semble approprié. Effectuez les diagnostics usuels pour déterminer
+la pertinence de votre modèle.
+
+Si ce n'est pas le cas, prenez toutes les mesures que vous jugez
+justifiées telles que : transformations, suppression des valeurs
+aberrantes, suppression de variables, etc. . .
+
+Expliquez les décisions que vous prenez et expliquez pourquoi vous les
+avez prises.
+
+Vérifiez à nouveau vos diagnostics pour les nouveaux modèles. 4. Modèle
+finale.
+
+Résumez vos modèles finaux si vous en avez plusieurs: rapportez les
+estimations des paramètres, les erreurs-types, les intervalles de
+confiance et les valeurs p.
+
+Interpréter les modèles ajustés dans le contexte du problème.
+
+Si vous avez plusieurs modèles, comparez-les.
+
+Notez qu'il existe plusieurs façons de comparer différents modèles de
+régression. 5.\_\_ RMSE\_\_
+
+Vous calculer la RMSE sur le test de votre modèle préféré (final)
+construit à partir du train.
+
+Mettre en évidence cette valeur. 6. Discussion.
+
+Quelles sont vos conclusions finales ?
+
+Mentionnez les limites de votre analyse ou les orientations futures
+possibles de la recherche.
+
+Les données Les données proviennent de la compétition Kaggle House
+Prices:
+
+Advanced Regression Techniques
+
+Description des donnees.
+
+Les données contiennent le prix de vente d'environ 1500 maisons ainsi
+que 67 variables explicatives décrivant (presque) tous les aspects des
+maisons résidentielles à Ames, Iowa.
+
+Le fichier data_description.txt contient une description complète de
+chaque colonne.
+
+Préparation des données.
+
+Les données ont été préalablement nettoyées et le découpage train/test a
+été fait .
+
+5 si vous souhaitez faire ce travail par vous même reprendre le fichier
+processing pour les explications et partir des données brutes
+(DonneesBrutes.csv).
+
+La seed est imposée à 2010 pour pouvoir comparer vos résultats.
+
+But : Ce concours vous met au défi de prédire le prix final de chaque
+maison et d'obtenir le modèle qui aura le plus petit RMSE.
+
+Voici les premières lignes de commandes pour télécharger vos données
+(section 1.1).
+
+# 1. Intro
+
+L'analyse des prix de l'immobilier est un sujet important pour les
+acheteurs, les vendeurs, les investisseurs et les gouvernements.
+
+La prédiction précise des prix de l'immobilier peut aider à prendre des
+décisions éclairées sur l'investissement immobilier.
+
+Les techniques de régression avancées jouent un rôle clé dans la
+prédiction des prix de l'immobilier en utilisant des algorithmes pour
+déterminer les relations complexes entre les différents facteurs qui
+influencent les prix.
+
+Cet exercice examinera en détail les techniques de régression
+multilinéaires et leur application dans l'analyse des prix de
+l'immobilier.
+
+Nous explorons les données sur les prix des maisons fournies par Kaggle
+et développons des modèles pour prédire les prix futurs.\newline
+
+## 1.1. Téléchargement des données
+
+```{r}
+train=read.csv("Train.csv",header=TRUE)
+test=read.csv("Test.csv",header=TRUE)
+```
+
+## 1.2 Installation et importation des packages
+
+A décommenter en cas de besoin d'installation de librairies.
+
+``` {.{.{.{.#{r}}}}}
+install.packages("installr")
+install.packages("corrplot")
+install.packages("ggplot2")
+install.packages("ggpubr")
+install.packages("reshape2")
+install.packages("GGally")
+install.packages("questionr")
+install.packages("multcomp")
+install.packages("leaps")
+install.packages("ade4")
+install.packages("caret")
+install.packages("RANN")
+install.packages("igraph")
+theme_set(theme_bw())
+install.packages("tidyjson")
+install.packages("tidylog")
+install.packages("Metrics")
+install.packages("fitdistrplus")
+install.packages("caTools")
+#install.packages(caret)
+```
+
+```{r ,message=FALSE, warning=FALSE, echo=FALSE}
+library(scales)
+#updateR()
+library(corrplot)
+library(ggplot2) # plot
+library(ggpubr)
+library(forcats)
+library(corrplot)
+library(MASS)
+library(knitr)
+library(cowplot)
+library(reshape2)
+library(car)
+library(GGally)
+library(car) # influenceIndexPlot
+library(questionr)
+library(multcomp)
+library(leaps)
+library(ade4)
+library(carData)
+library(caret) # Normalisation des variables numériques
+library(RANN)
+library(igraph)
+theme_set(theme_bw())
+library(purrr) #map()
+library(gridExtra) # grid.arrange
+library(base) # tri
+library(tidyjson) # bind_rows
+library(tidylog) # select_if
+library(dplyr) # bind_rows, select
+library(Metrics) #rmse
+library(fitdistrplus) #descdist
+library(lmtest)
+library(fastDummies)
+library(msgr) #is_in
+#library(mltools)
+library(caret)
+```
+
+## 1.3 Definitions des fonction récurrentes du projet
+
+```{r}
+
+set.seed(2021)
+
+Message = FALSE
+WARNING = FALSE
+
+Normal_Error <- function(x){
+    paste(
+      'Erreur quadratique RMSE des prévisions : ',round(rmse(
+        train$SalePrice,fitted.values(
+          x))), ' | Coefficient de détermination R² ajusté : ', label_percent(big.mark = ",", suffix = " %")(summary(
+             x)$adj.r.squared))
+}
+
+Error <- function(x){
+   paste(
+     'Erreur quadratique RMSE des prévisions : ', round(rmse(
+       train$SalePrice,exp(
+         fitted.values(
+           x)))), ' | Coefficient de détermination R² ajusté : ', label_percent(big.mark = ",", suffix = " %")(summary(
+             x)$adj.r.squared))
+}
+
+marmse <- function(x){
+  round(rmse(
+       train$SalePrice,
+         fitted.values(
+           x)))
+}
+
+
+monr2 <- function(x){
+  label_percent(big.mark = ",", suffix = " %")(summary(x)$adj.r.squared)
+}
+```
+
+## 1.4. Objectifs
+
+L'objectif initial est de prédire au mieux la valeur de vente
+("SalePrice") à partir de tout ou partie des 74 variables explicatives,
+via un modèle multilinéaire.\newline
+
+On étudiera d'abord les données via une analyse exploratoire en se
+basant sur l'ensemble des données.
+
+On explorera de manière graphique les distributions de l'ensemble des
+graphique, ainsi que ces mêmes distributions vis à vis de la variable
+cible.
+
+Concernant cette dernière, on calera un modèle paramétrique
+aprorié.\newline
+
+On explorera de manière graphique les corrélations entre variables les
+plus significatives.
+
+Cette étape permettra de réduire le nombre de variables
+considérées.\newline
+
+On calera ensuite un modèle linéaire sur le jeu d'entraînement.
+
+On vérifiera les hypothèses sur les résidus : centrés, homoscédastiques,
+non-autocorrélés, et suivant une loi normale.\newline
+
+Enfin on évalura la RMSE du modèle sur le jeu de test.\newline
+
+# 2. Analyse exploratoire des données et modélisation
+
+## Fournir des résumés sous forme de graphiques et de statistiques élémentaires pour toutes les variables et paires de variables
+
+### Concaténation des données pour transformation
+
+```{r}
+# On crée également un jeux de données "all" concatenant les deux précédents.
+all=bind_rows(train,test)
+# On crée une liste des jeux de données
+dfs = list(train, test, all)
+dfs_names = c('Train', 'Test', 'All')
+```
+
+```{r}
+# On confirme le nombre de lignes et de colonnes pour chacun des jeux de données
+cols = c(dim(train)[2], dim(test)[2], dim(all)[2])
+rows = c(dim(train)[1], dim(test)[1], dim(all)[1])
+data.frame(dfs_names, cols, rows)
+```
+
+Le nombre de colonnes est bien identique pour les trois jeux de données.
+
+\newpage
+
+```{r}
+summary(train)
+```
+
+On peut distinguer d'après ces résumés des variables reconnues
+automatiquement telles que numériques et qualitatives, comme détaillé
+ci-dessous.
+
+\- Numerique : MSSubClass, LotFrontage, LotArea, OverallQual,
+OverallCond, YearBuilt, YearRemodAdd, MasVnrArea, BsmtFinSF1,
+BsmtFinSF2, BsmtUnfSF, TotalBsmtSF, X1stFlrSF, X2stFlrSF, LowQualFinSF,
+GrLivArea, BsmtFullBath, BsmtHalfBath, FullBath, HalfBath, BedroomAbvGr,
+KitchenAbvGr, TotRmsAbvGrd, Fireplaces, GarageYrBlt, GarageCars,
+GarageArea, WoodDeckSF, OpenPorchSF, EnclosedPorch, X3SsnPorch,
+ScreenPorch, PoolArea, MiscVal, MoSold, YrSold, SalePrice
+
+\- Qualitatives : MSZoning, Street, LotShape, LandContour, Utilities,
+LotConfig, LandSlope, Neighborhood, Condition1, Condition2, BldgType,
+HouseStyle, RoofStyle, RoofMatl, Exterior1st, Exterior2nd, MasVnrType,
+ExterQual, ExterCond, Foundation, BsmtQual, BsmtCond, BsmtExposure,
+BsmtFinType1, BsmtFinType2, Heating, HeatingQC, CentralAir, Electrical,
+KitchenQual, Functional, GarageType, GarageFinish, GarageQual,
+GarageCond, PavedDrive, SaleType, SaleCondition
+
+La variable MSSubClass devrait être qualitative compte tenu de la fiche
+explicative des variables.
+
+Si nous les gardons dans notre modèle final, les variables YearBuilt,
+YearRemodAdd et GarageYrBlt, définies par des dates de construction,
+pourraient être plus pertinentes, une fois transformées en durées.
+
+Les variables MoSold et YrSold qui font référence à la même date
+pourraient être combinées en une unique variable, avant d'être
+tranformées en durée.
+
+Certaines variables catégorielles pourraient avoir plus de sens si les
+modalités étaient ordonnées.
+
+Enfin la variable CentralAir devrait être booléenne.
+
+L'objectif suivant est d'étudier les variables explicatives, leurs
+relations mutuelles, ainsi qu'avec la variable cible.
+
+Pour cela, on étudie :
+
+\- leur distribution,
+
+\- leurs corrélations 2 à 2 et
+
+\- leur corrélation avec la variable cible.\newline
+
+Pour ce faire, on sépare pour en traiter tout le domaine des modalités,
+les variables qualitatives (notées dans la suite du code "factors"), des
+variables quantitatives (notées dans le code "nums").
+
+Cela nous permettra d'inclure les variables qualitatives qui pourraient
+avoir, dans les comparaisons 2 à 2, du sens.\newline
+
+Le but est notamment de sélectionner a priori les variables les plus
+intéressantes, notamment en évacuant des variables très corrélées entre
+elles (et donc redondantes), ou qui semblent inutiles.
+
+En efet, l'ensemble de données initial présente un nombre important de
+variables (75) compte tenu du nombre d'observations (1095 dans
+l'ensemble d'entrainement).
+
+Nous allons appliquer les transformations nécessaires à l'ensemble de
+nos données afin de tenir compte de ces caractéristiques inhérentes aux
+données.
+
+```{r}
+unique(test$Neighborhood)
+```
+
+```{r}
+all_factors = lapply(
+  cbind(select_if(all,is.character), MSSubClass=all$MSSubClass), as.factor)
+
+all_nums = select(select_if(all,is.numeric), -MSSubClass)
+
+all_fn = cbind(all_factors, all_nums)
+
+train_f <- lapply(
+  cbind(select_if(train,is.character), MSSubClass=train$MSSubClass), as.factor)
+train_n <- select(select_if(train,is.numeric), -MSSubClass)
+train_fn = cbind(train_f, train_n)
+
+test_f <- lapply(
+  cbind(select_if(test,is.character), MSSubClass=test$MSSubClass), as.factor)
+test_n = select(select_if(test,is.numeric), -MSSubClass)
+test_fn = cbind(test_f, test_n)
+```
+
+\newpage
+
+```{r}
+summary(train_f)
+```
+
+\newpage
+
+```{r}
+summary(train_n)
+```
+
+\newpage
+
+```{r}
+summary(all_nums)
+```
+
+\newpage
+
+```{r}
+Names=names(all_fn)
+for (Name in Names){
+  print(paste("analyse univariée de la variable ",Name))
+  print(summary(all_fn[Name]))
+  print(str(all_fn[Name]))
+print("***********************************************************************")
+}
+Echo=FALSE
+```
+
+```{r}
+# Names=names(all_fn)
+for (Name in Names){
+  par(mfrow=c(1,2))
+  plot(all_fn[,Name])
+  title('QQPlot ', Name,"","" )
+print("***********************************************************************")
+}
+```
+
+On remarque que la variable qualitative Neighborhood a un nombre
+particulièrement élevé de modalités.
+
+Il n'en faut pas plus de 15 (au lieu de 25) pour pouvoir la comparer
+avec la variable cible.
+
+La p-value de son test de Kruskal-Wallis étant très faible (\<2,2 e-16),
+l'hypothèse H0 est donc rejetée, ce qui signifie qu'il y a un lien avec
+la variable à prédire.
+
+Par conséquent, nous n'allons pas en supprimer les modalités, mais ne
+garder que les 15 les plus représentées dans les données de test et
+fusionner le reste.
+
+```{r}
+levels(all_fn$Neighborhood) = c(
+  "Other", "Other", "Other",  "BrkSide", "Other", "CollgCr", "Crawfor", "Other", "Gilbert", "Other",  "Other", "Mitchel", "NAmes", "Other", "Other", "NridgHt", "NWAmes",  "OldTown", "Sawyer",  "SawyerW", "Somerst", "Other", "SWISU",  "Other",  "Other")
+```
+
+Nous procédons de même pour Exterior2nd.
+
+```{r}
+summary(as.factor(all_fn$Exterior2nd), maxsum = 15)
+```
+
+```{r}
+levels(all_fn$Exterior2nd)
+```
+
+```{r}
+levels(all_fn$Exterior2nd) = c(
+  "AsbShng", "Other", "Brk Cmn", "BrkFace", "CBlock",  "CmentBd", "HdBoard", "ImStucc", "MetalSd", "Other", "Plywood", "Stone", "Stucco",  "VinylSd", "Wd Sdng", "Wd Shng")
+```
+
+```{r}
+summary(ggpairs(all_fn))
+```
+
+```{r}
+#ggpairs(all_fn)
+```
+
+Fournir des résumés sous forme de graphiques et de statistiques
+élémentaires pour toutes les variables et paires de variables (commande
+commentées plus haut) ne permet pas d'avoir une représentation
+compréhensible et est long à éxécuter.
+
+\newpage
+
+## Utiliser éventuellement Cullen-Frey pour l'étude des distributions
+
+La visualisation de la distribution de la variable cible semblait
+indiquer qu'il y avait des outliers que nous pourrons traiter pour la
+modélisation ultérieure.
+
+```{r}
+Namesn=names(train_n)
+for (Name in Namesn){
+  print(paste('Graphique de Cullen-Frey de ', Name))
+  descdist(train_n[, Name], boot=100)
+print("***********************************************************************")
+}
+Echo=FALSE
+```
+
+Nous pouvons regrouper les variables selon leurs distributions
+ci-dessous.
+
+\- lognormal: LotFrontage, OverallQual, BsmtFinSF1, TotalBsmtSF,
+X1stFlrSF, GrLivArea, TotRmsAbvGrd, SalePrice - gamma: LotArea,
+MasVnrArea, WoodDeckSF, OpenPorchSF - normal: OverallQual, GarageCars,
+MoSold,
+
+\- beta: YearBuilt, BsmtFinSF2, BsmtUnfSF, X2ndFlrSF, LowQualFinSF,
+BsmtFullBath, BsmtHalfBath, HalfBath, KitchenAbvGr, Fireplaces,
+GarageYrBlt, EnclosedPorch, X3SsnPorch, ScreenPorch, PoolArea, MiscVal
+
+\- uniform: YearRemodAdd, FullBath, YrSold, - logistic: BedroomAbvGr,
+GarageArea
+
+On étudie la variable cible graphiquement via sa distribution, sous
+forme d'histogramme.
+
+```{r}
+hist(all_fn$SalePrice,freq=F)
+lines(density(all_fn$SalePrice),col='red')
+```
+
+L'histogramme ne semble en effet pas suivre une loi normale.
+
+Nous allons le confirmer avec le test de Shapiro.
+
+```{r}
+shapiro.test(all_fn$SalePrice)
+```
+
+La p-value du test de Shapiro-Wilk étant inférieure à 5%, on rejette
+l'hypothèse H0.
+
+On en conclue donc que la distribution de la variable cible est
+significativement différente d'une loi normale.
+
+```{r}
+summary(all_fn$SalePrice)
+```
+
+La variable cible semble proche d'une loi log-normale.
+
+En effet, nous observons qu'il n'est pas possible de représenter d'une
+manière lisible un résumé et des graphique pour l'ensemble des paires de
+variables.
+
+Nous allons donc préférer sélectionner celles dont la distribution
+semble être similaire à celle de la variable cible.
+
+```{r}
+train_ = cbind(
+      train_fn[
+      'LotFrontage'],
+        train_fn[
+          'OverallQual'],
+            train_fn[
+              'BsmtFinSF1'],
+                train_fn[
+                  'TotalBsmtSF'],
+                    train_fn[
+                      'X1stFlrSF'],
+                        train_fn[
+                          'GrLivArea'],
+                            train_fn[
+                              'TotRmsAbvGrd'],train_fn['SalePrice'])
+```
+
+```{r}
+ggpairs(train_)
+```
+
+Il semble en effet y avoir un lien avec entre les variables explicatives
+dont la distribution est similaire à celle de la variable cible.
+
+TotalBsmtSF et X1stFlrSF d'une part ainsi que GrLivArea et TotRmsAbvGrd
+d'autre part sont fortement corrélés (proches de 1).
+
+Inverser la matrice risque de nous donner des valeurs trop élevées et
+créer une instabilité numérique.
+
+Il va donc falloir faire de la sélection de variable pour vérifier si la
+forte corrélation de variables impacte négativement notre modèle.
+
+# 3. Validité des modèles
+
+## Modèle de régression linéaire multiple qui nous semble approprié
+
+Il semble approprié de mettre en place un modèle étalon le plus simple
+possible afin de vérifier si les différentes hypothèses que nous faisons
+nous permettent d'améliorer effectivement notre modélisation grâce à un
+point de comparaison.
+
+Pour ce faire, nous allons cepandant séparer les variables qualitatives
+des variables quantitatives.
+
+En effet nous avions remarqué la quantité élevée de modalités de
+certaines variables qualitatives.
+
+Il est donc d'autant plus possible qu'elles ne soient pas toutes
+représentées à la fois dans les jeux d'entrainement et de test sans ce
+traitement préalable.
+
+### mod_etalon
+
+```{r}
+mod_etalon <- lm(SalePrice~., train_fn)
+Normal_Error(mod_etalon)
+```
+
+Erreur quadratique RMSE des prévisions : 20543 \| Coefficient de
+détermination R² : 91 %
+
+``` {.{.{.{.#{r}}}}}
+head(norm_scale$SalePrice)
+head(train_fn$SalePrice)
+```
+
+## Diagnostics usuels pour déterminer la pertinence du modèle
+
+Sous réserve que notre métrique de performance RMSE ne soit pas
+détériorée, nous estimerons la pertinence de notre modèle sur
+l'observation de 4 hypothèses :
+
+\- la linéarité du modèle,
+
+\- l'homoscédasticité de,
+
+\- la non corrélation de ses erreurs et
+
+\- leur caractère gaussien.
+
+### [P1] Linéarité
+
+Le test de Cullen-Frey nous a indiqué que la distribution de la variable
+cible était plutôt log-normale.
+
+Nous allons donc tenter de retirer les variables dont la distribution
+est différente de la variable cible jusqu'à trouver un modèle linéaire
+dont les résidus sont centrés.
+
+#### mod_log
+
+```{r}
+train_fns <- select(train_fn, -SalePrice)
+train_fnsl = cbind(train_fns, log(train_fn['SalePrice']))
+
+test_fns <- select(test_fn, -SalePrice)
+test_fnsl = cbind(test_fns, log(test_fn['SalePrice']))
+```
+
+```{r}
+mod_log <- lm(log(SalePrice)~., train_fnsl)
+Error(mod_log)
+```
+
+#### mod\_
+
+L'Erreur quadratique RMSE des prévisions s'étant détériorée à 196973,
+nous allons d'abord sélectionner dans notre ensemble d'entrainement
+`train_` uniquement les variables caractéristiques ayant la même
+distribution log normale que la variable cible, à savoir :
+`LotFrontage`, `OverallQual`, `BsmtFinSF1`, `TotalBsmtSF`, `X1stFlrSF`,
+`GrLivArea` et `TotRmsAbvGrd`.
+
+```{r}
+mod_ <- lm(SalePrice~., train_)
+Normal_Error((mod_))
+```
+
+#### mod_l0
+
+Nous allons tenter de retirer les variables explicatives dont le
+logarithme des valeurs ne peut être calculé et prendre le log des
+valeurs restantes.
+
+```{r}
+train_l0 = cbind(
+  log(
+    train_fn[
+      'LotFrontage']), log(
+        train_fn[
+          'OverallQual']), log(
+            train_fn[
+              'X1stFlrSF']), log(
+                train_fn[
+                  'GrLivArea']), log(
+                    train_fn['TotRmsAbvGrd']), log(train_fn['SalePrice']))
+
+mod_l0 <- lm(SalePrice~., train_l0)
+Error(mod_l0)
+```
+
+```{r}
+head(train_l0)
+```
+
+```{r}
+ggpairs(train_l0)
+```
+
+#### mod_l0T
+
+```{r}
+train_l0T = cbind(
+  log(
+    train_fn[
+      'LotFrontage']), log(
+        train_fn[
+          'OverallQual']), log(
+            train_fn[
+              'X1stFlrSF']), log(
+                train_fn[
+                  'GrLivArea']), log(train_fn['SalePrice']))
+
+mod_l0T <- lm(SalePrice~., train_l0T)
+Error(mod_l0T)
+```
+
+```{r}
+ggpairs(train_l0T)
+```
+
+#### mod_l0TO
+
+```{r}
+train_l0TO = cbind(
+  log(
+    train_fn[
+      'LotFrontage']), log(
+            train_fn[
+              'X1stFlrSF']), log(
+                train_fn[
+                  'GrLivArea']), log(train_fn['SalePrice']))
+
+mod_l0TO <- lm(SalePrice~., train_l0TO)
+Error(mod_l0TO)
+```
+
+```{r}
+ggpairs(train_l0TO)
+```
+
+#### mod_l0TOX
+
+```{r}
+train_l0TOX = cbind(
+  log(
+    train_fn[
+      'LotFrontage']), log(
+                train_fn[
+                  'GrLivArea']), log(train_fn['SalePrice']))
+
+mod_l0TOX <- lm(SalePrice~., train_l0TOX)
+Error(mod_l0TOX)
+```
+
+```{r}
+ggpairs(train_l0TOX)
+```
+
+#### mod_l0TOXL
+
+```{r}
+train_l0TOXL = cbind(
+  log(
+    train_fn[
+      'GrLivArea']), log(train_fn['SalePrice']))
+
+mod_l0TOXL <- lm(SalePrice~., train_l0TOXL)
+Error(mod_l0TOX)
+```
+
+```{r}
+ggpairs(mod_l0TOXL)
+```
+
+Après avoir confirmé que c'était notre modèle étalon `mod_etalon` qui
+était le plus performant pour l'instant, nous allons en vérifier les
+hypothèses de linéarité.
+
+```{r}
+plot(mod_etalon, 1)
+```
+
+• Les résidus restent globalement uniformément répartis des deux côtés
+de 0 et • la ligne rouge est approximativement horizontale à zéro donc
+[P1] est validée.
+
+Nous allons alors vérifier l'hypothèse d'homoscédasticité.
+
+### 3.2.2. [P2] Homoscédasticité
+
+Nous commençons cette vérification par une observation graphique.
+
+```{r}
+plot(mod_etalon, 3)
+```
+
+La courbe rouge est relativement "horizontale" et les points sont
+uniformément répartis autour de celle-ci, il y a donc une absence de
+tendance.
+
+```{r}
+ncvTest(mod_etalon)
+```
+
+Le test de variance permet de confirmer la 2ème hypothèse
+d'homoscedasticité car la p-value \< 5%.
+
+### 3.2.3. [P3] Correlation
+
+```{r}
+acf(residuals(mod_etalon,main="Plot Auto-correlation"))
+```
+
+Le graphique d'auto-correlation semble indiquer qqu'il n'y a pas
+d'auto-corrélation. Nous allons également le confirmer par un test.
+
+```{r}
+durbinWatsonTest(mod_etalon)
+```
+
+H_0: "Non-correlation" Ici la p-value est proche de 0.05 donc [P3] peut
+être considérée comme validée, ce que nous vérifierons à nouveau si nous
+changeons de modèle.
+
+### 3.2.4. [P4] : Erreurs gaussiennes
+
+```{r}
+plot(mod_etalon,2)
+```
+
+Les points représentant les résidus semblent alignés autour de la
+première bissectrice. Le test de Shapiro va nous permettre de le
+confirmer.
+
+```{r}
+shapiro.test(residuals(mod_etalon))
+```
+
+H_0 : "Gaussien" Ici p-value \< 0.05, donc P4 n'est pas validée. Par
+conséquent les erreurs ne sont pas gaussiennes mais ce n'est pas
+l'hypothèse la plus importante.
+
+++++++++++++++++++++++++++++++++++
+
+on va tenter d'améliorer la RMSE en tentant de réduire la corrélation
+entre les variables.
+
+### mod_etalon0
+
+Nous allons vérifier si le retrait de valeurs corrélées permet
+d'améliorer le modèle étalon.
+
+```{r}
+train_fn0 <- select(train_fn, -TotRmsAbvGrd)
+mod_etalon0 <- lm(SalePrice~., train_fn0)
+Normal_Error(mod_etalon0)
+```
+
+Ce n'est pas le cas donc nous allons poursuivre avec le modèle étalon.
+
+```{r}
+plot(mod_etalon0)
+```
+
+```{r}
+shapiro.test(residuals(mod_etalon0))
+```
+
+Même si le retrait d'une des variables corrélée améliore le coefficient
+de détermination, il a peu d'impact sur la métrique de performance que
+nous cherchons à améliorer, à savoir la RMSE.
+
+Ca ne nous permet pas non plus de valider notre 4ème hypothèse.
+
+Nous allons donc la conserver.
+
+### Valeurs abérantes
+
+Nous allons vérifier si le retrait des valeurs abérantes améliore la
+performance.
+
+```{r}
+plot(mod_etalon, 5)
+```
+
+```{r}
+influenceIndexPlot(mod_etalon, vars="Studentized")
+```
+
+Les exemples 819 et 950 semblent être des outliers à forts résidus.
+
+```{r}
+influenceIndexPlot(mod_etalon, vars="hat")
+```
+
+```{r}
+influenceIndexPlot(mod_etalon, vars="cook")
+```
+
+#### mod_bonf
+
+```{r}
+outlierTest(mod_etalon)
+```
+
+```{r}
+train_bonf <- train_fn[-c(950, 819, 317, 288, 1079, 811, 19, 669, 792, 621),]
+
+mod_bonf <- lm(SalePrice~., train_bonf)
+Normal_Error(mod_bonf)
+```
+
+Nous allons garder les outliers au sens de Bonferoni car améliorent
+notre objectif qu'est la RMSE, même si améliorent notre coefficient de
+détermination.
+
+Nous allons confirmer que l'ajout des variables dont la distribution est
+log-normale, après normalisation, améliore notre modèle.
+
+Nous allons cependant faire attention à ne pas y inclure de
+transformation de la variable cible pour ne pas y inclure de data
+leakage.
+
+#### mod_6
+
+```{r}
+train_l1 <- cbind(
+  LogLotFrontage=log(
+    train_fn[
+      'LotFrontage']), LogOverallQual= log(
+        train_fn[
+          'OverallQual']), LogX1stFlrSF=log(
+            train_fn[
+              'X1stFlrSF']), LogGrLivArea=log(
+                train_fn[
+                  'GrLivArea']), LogTotRmsAbvGrd=log(
+                    train_fn[
+                      'TotRmsAbvGrd']))
+```
+
+```{r}
+colnames(train_l1) <- c(
+  "LogLotFrontage", "LogOverallQual", "LogX1stFlrSF", "LogGrLivArea", "LogTotRmsAbvGrd")
+```
+
+```{r}
+head(train_fn)
+```
+
+```{r}
+train_6 <- cbind(
+    train_fn, train_l1)
+
+mod_6 <- lm(SalePrice~., train_6)
+Normal_Error(mod_6)
+```
+
+Erreur quadratique RMSE des prévisions : 19923 \| Coefficient de
+détermination R² : 92 %
+
+```{r}
+head(train_6)
+```
+
+```{r}
+shapiro.test(residuals(mod_6))
+```
+
+H_0 : "Gaussien" Ici p-value \< 0.05, donc P4 n'est toujours pas
+validée.
+
+Par conséquent les erreurs ne sont pas gaussiennes.
+
+```{r}
+alias(mod_6)
+```
+
+#### mod_l2f
+
+```{r}
+mod_l2f = step(
+  mod_6, SalePrice~., data=train_6, trace=FALSE,direction=c(
+    "forward"), criterion = BIC)
+Normal_Error(mod_l2f)
+```
+
+Sélectionner automatiquement les variables n'impacte pas notre modèle
+`mod_l2`.
+
+```{r}
+summary(mod_l2f)
+```
+
+#### mod_l3
+
+```{r}
+
+train_l3 = na.omit(train_6)
+mod_l3 <- lm(SalePrice~., train_l3)
+Normal_Error(mod_l3)
+
+```
+
+Le retrait des valeurs nulles n'a pas non plus d'impact sur notre
+modèle.
+
+#### mod01
+
+Il existe des valeurs corrélées parmi les données orginales.\newline
+TotalBsmtSF : BsmtFinSF1, BsmtFinSF2, BsmtUnfSF GrLivArea : X1stFlrSF,
+X2ndFlrSF, LowQualFinSF
+
+Nous allons donc éliminer ces variables si ce n'est déjà fait et
+vérifier si cela impacte nos sélections automatiques de modèles.
+
+```{r}
+train_l3 <- train_6 %>% select(
+  -c(BsmtFinSF1, BsmtFinSF2, BsmtUnfSF, X1stFlrSF, X2ndFlrSF, LowQualFinSF))
+```
+
+```{r}
+head(train_l3)
+```
+
+```{r}
+mod01=lm(SalePrice~.,data=train_l3)
+
+mod_ldf = step(
+  mod01, SalePrice~. ,data=train_l3, trace=F,direction=c(
+    "forward"), criterion = BIC)
+Normal_Error(mod_ldf)
+```
+
+Le retrait des valeurs corrélées n'améliore pas notre RMSE et détériore
+le coefficient de détermination ajusté.
+
+#### mod_ldummy
+
+Nous allons transformer les variables catégorielles en fonctions
+indicatrices afin de vérifier si leur ordre influence le modèle.
+
+Cet ordre peut dépendre de leur corrélation avec la variable
+explicative.
+
+Afin de réaliser un test de corrélation entre variables de même type,
+nous allons effectuer les différentes transformations qui vont permettre
+d'obtenir des variables numériques.
+
+```{r}
+train_factors = lapply(
+  cbind(select_if(train,is.character), MSSubClass=train$MSSubClass), as.factor)
+train_dummyf <- fastDummies::dummy_cols(
+  train_factors, remove_first_dummy = TRUE)
+
+train_nums = select_if(train_6,is.numeric)
+
+train_dall = cbind(train_dummyf, train_nums)
+```
+
+```{r}
+summary(train_factors)
+```
+
+```{r}
+mod_ldummy <- lm(SalePrice~., train_dall)
+summary(mod_ldummy)
+
+Normal_Error(mod_ldummy)
+
+ncvTest(mod_ldummy)
+```
+
+Erreur quadratique RMSE des prévisions : 19923 \| Coefficient de
+détermination R² ajusté : 92 % Ce modèle est celui qui a nos meilleurs
+performances.
+
+Nous allons commenter les étapes de sélections automatiques car leurs
+calculs consomment beaucoup de ressources sans particulièrement
+améliorer les performances.
+
+#### mod_ldbo
+
+```{r}
+#mod_ldbo = step(
+  #mod_ldummy,SalePrice~.,data=train_dall, trace=FALSE ,direction=
+    #"both", criterion = AIC)
+```
+
+```{r}
+#Normal_Error(mod_ldbo)
+```
+
+#### mod_ldba
+
+```{r}
+#mod_ldba=step(
+  #mod_ldummy,~.,data=train_dall, trace=FALSE,direction=
+    #"backward", criterion = BIC)
+```
+
+```{r}
+#Normal_Error(mod_ldba)
+```
+
+Il semble que la sélection automatique des variables n'améliore pas le
+RMSE, bien que ça améliore le coefficient de détermination R² ajsté.
+
+Cela n'a aucune incidence sur la RMSE.
+
+Nous allons donc plutôt garder les variables qualitatives sous leurs
+formes précédente afin de les ordonner.\newline
+
+#### mod_lol
+
+```{r}
+train_dall = cbind(train_dummyf, train_nums)
+
+train_l5 <- cbind(train_l1, train_dall)
+```
+
+```{r}
+train_daf = cbind(train_factors, train_nums)
+```
+
+```{r}
+mod_summary_sign <- summary(mod_etalon)$coefficients[ , 4]  # p-values retirées
+mod_summary_stars <- NA                         
+mod_summary_stars[mod_summary_sign < 0.1] <- "."
+mod_summary_stars[mod_summary_sign < 0.05] <- "*"
+mod_summary_stars[mod_summary_sign < 0.01] <- "**"
+mod_summary_stars[mod_summary_sign < 0.001] <- "***" # les plus significatifs
+mod_summary_stars[is.na(mod_summary_stars)] <- "n.s."
+names(mod_summary_stars) <- names(mod_summary_sign)
+mod_summary_stars[mod_summary_stars < 0.05]
+```
+
+Nous remarquons que certaines variables ont une faible influence sur la
+cible.\newline Nous pouvons donc les supprimer.
+
+```{r}
+head(train_dall)
+```
+
+```{r}
+drops <- c(
+  "Utilities","Street", "GarageCond", "GarageQual", "KitchenQual", "HeatingQC", "BsmtQual", "ExterCond", "ExterQual", "")
+
+data_ll = train_dall[ , !(names(train_dall) %in% drops)]
+
+mod_lol <- lm(SalePrice~., data_ll)
+summary(mod_lol)
+
+Normal_Error(mod_lol)
+```
+
+Ordonner les variables qualitatives les moins pertinentes n'améliore pas
+plus la RSME.
+
+```{r}
+ncvTest(mod_lol)
+```
+
+### mod_lols
+
+Nous allons vérifier si la standardisation des variables numériques a un
+impact.
+
+```{r}
+data_llscaled <- cbind(as.data.frame(scale(train_nums)), train_dummyf)
+mod_lols <- lm(SalePrice~., data_llscaled)
+summary(mod_lols)
+
+Error(mod_lols)
+```
+
+Mettre à l'échelle n'améliore pas la performance du modèle.
+
+# 4. Modèle final
+
+## mod_6
+
+Nous ne considérons comme modèles finaux que ceux qui ont la meilleure
+performance.
+
+```{r}
+summary(mod_6)$coefficient
+```
+
+## mod_l2f
+
+```{r}
+summary(mod_l2f)$coefficient
+```
+
+## mod_l3
+
+```{r}
+summary(mod_l3)$coefficient
+```
+
+## mod_l3
+
+```{r}
+summary(mod_l3)$coefficient
+```
+
+## Résumé
+
+```{r message=FALSE, warning=FALSE, out.width = "60%"}
+Modele = c('mod_etalon', 'mod_log', 'mod_', 'mod_l0', 'mod_L0T', 'mod_L0TO', 'mod_l0TOX', 'mod_l0TOXL', 'mod_etalon0', 'mod_bonf', 'mod_l2f', 'mod_l3', 'mod_ldf', 'mod_6', 'mod_ldummy', 'mod_lol', 'mod_lols')
+
+RMSE = c(marmse(mod_etalon), marmse(mod_log), marmse(mod_), marmse(mod_l0), marmse(mod_l0T), marmse(mod_l0TO), marmse(mod_l0TOX), marmse(mod_l0TOXL), marmse(mod_etalon0), marmse(mod_bonf), marmse(mod_6), marmse(mod_l2f), marmse(mod_l3), marmse(mod_ldf), marmse(mod_ldummy), marmse(mod_lol), marmse(mod_lols))
+R = c(monr2(mod_etalon), monr2(mod_log), monr2(mod_), monr2(mod_l0), monr2(mod_l0T), monr2(mod_l0TO), monr2(mod_l0TOX), monr2(mod_l0TOXL), monr2(mod_etalon0), monr2(mod_bonf), monr2(mod_6), monr2(mod_l2f), monr2(mod_l3), monr2(mod_ldf), monr2(mod_ldummy), monr2(mod_lol), monr2(mod_lols))
+
+data.frame(Modele, RMSE, R)[order(data.frame(Modele, RMSE, R)$RMSE),]
+```
+
+On peut s'attendre à ce que, en moyenne, les valeurs prédites des prix
+des biens immobiliers pour nos meilleurs modèles s'écartent (dans un
+sens ou dans l'autre) de 19 923 USD de la valeur effectivement observée.
+
+Evidemment, plus un modèle est bon, plus le RMSE est faible,
+contrairement au R² qui lui doit être élevé.
+
+Leur coefficient de détermination ajusté est de 0,92.
+
+Ainsi la régression détermine 92 % de la distribution des points On le
+considère élevé.
+
+Il permet de suivre le pourcentage de variation des prix, qui s'explique
+par les mouvements des données de référence en entrainement.
+
+# 5.\_\_RMSE\_\_ : 41742.07
+
+Afin de calculer la RMSE de notre modèle sur les données de test, il va
+falloir que les datasets de train et de test aient la même structure.
+
+Il se trouve que notre preprocessing transforme la structure du dataset
+auquel il est appliqué.
+
+Dans la mesure où il nous est donné la possibilité de reconstruire nos
+données, nous allons séparer à nouveau la totalité de nos données à
+nouveau après avoir appliqué les transformations requises plutôt que de
+construire un pipeline dédié pour les données de test.
+
+## Concaténation des données pour transformation
+
+```{r ,message=FALSE, warning=FALSE, echo=FALSE}
+# On crée également un jeux de données "all" concatenant les deux précédents.
+all=bind_rows(train,test)
+# On crée une liste des jeux de données
+dfs = list(train, test, all)
+dfs_names = c('Train', 'Test', 'All')
+```
+
+```{r}
+cols = c(dim(train)[2], dim(test)[2], dim(all)[2])
+rows = c(dim(train)[1], dim(test)[1], dim(all)[1])
+data.frame(dfs_names, cols, rows)
+```
+
+```{r}
+all_factors = lapply(cbind(select_if(all,is.character), MSSubClass=all$MSSubClass), as.factor)
+```
+
+## Préparation des facteurs
+
+```{r}
+summary(all_factors)
+```
+
+```{r}
+head(all_factors$Street)
+```
+
+```{r}
+all_factors$Street=ordered(all_factors$Street, levels=c("Pave", "Grvl"))
+all_factors$LandContour=ordered(all_factors$LandContour, levels=c("Low", "HLS", "Bnk", "Lvl"))
+all_factors$Utilities=ordered(all_factors$Utilities, levels=c("ELO", "NoSeWa", "NoSewr", "AllPub"))
+all_factors$LandSlope=ordered(all_factors$LandSlope, levels=c("Sev", "Mod", "Gtl"))
+all_factors$ExterQual=ordered(all_factors$ExterQual, levels=c("Po", "Fa", "TA", "Gd", "Ex"))
+all_factors$ExterCond=ordered(all_factors$ExterCond, levels=c("Po", "Fa", "TA", "Gd", "Ex"))
+all_factors$BsmtQual=ordered(all_factors$BsmtQual, levels=c("NA", "Po", "Fa", "TA", "Gd", "Ex"))
+all_factors$BsmtCond=ordered(all_factors$BsmtCond, levels=c("NA", "Po", "Fa", "TA", "Gd", "Ex"))
+all_factors$BsmtExposure=ordered(all_factors$BsmtExposure, levels=c("NA", "No", "Mn", "Av", "Gd"))
+all_factors$BsmtFinType1=ordered(all_factors$BsmtFinType1, levels=c("NA", "Unf", "LwQ", "Rec", "BLQ", "ALQ", "GLQ"))
+all_factors$BsmtFinType2=ordered(all_factors$BsmtFinType2, levels=c("NA", "Unf", "LwQ", "Rec", "BLQ", "ALQ", "GLQ"))
+all_factors$HeatingQC=ordered(all_factors$HeatingQC, levels=c("Po", "Fa", "TA", "Gd", "Ex"))
+all_factors$Functional=ordered(all_factors$Functional, levels=c("Sal", "Sev", "Maj2", "Maj1", "Mod", "Min2", "Min1", "Typ"))
+all_factors$GarageFinish=ordered(all_factors$GarageFinish, levels=c("NA", "Unf", "RFn", "Fin"))
+all_factors$GarageCond=ordered(all_factors$GarageCond, levels=c("NA", "Po", "Fa", "TA", "Gd", "Ex"))
+```
+
+```{r}
+all_unordored <- dplyr::select_if(data.frame(all_factors), ~ !is.ordered(.) & is.factor(.))
+all_ordered <- dplyr::select_if(data.frame(all_factors), ~ is.ordered(.) & is.factor(.))
+```
+
+```{r}
+all_dummyf <- fastDummies::dummy_cols(all_unordored, remove_first_dummy = TRUE)
+```
+
+```{r}
+head(train_dummyf)
+```
+
+```{r}
+head(all_dummyf)
+```
+
+```{r}
+droplevels(all_dummyf)
+```
+
+```{r}
+select(select_if(all,is.numeric), - MSSubClass, -SalePrice)
+```
+
+```{r}
+all_nums = cbind(scale(select(select_if(all,is.numeric), - MSSubClass, -SalePrice), center=FALSE), SalePrice=all$SalePrice)
+all_fn = cbind(all_dummyf, all_ordered, all_nums)
+```
+
+```{r}
+head(all_fn)
+```
+
+```{r}
+all_l1 <- cbind(
+  LogLotFrontage=log(
+    all_fn[
+      'LotFrontage']), LogOverallQual= log(
+        all_fn[
+          'OverallQual']), LogX1stFlrSF=log(
+            all_fn[
+              'X1stFlrSF']), LogGrLivArea=log(
+                all_fn[
+                  'GrLivArea']), LogTotRmsAbvGrd=log(
+                    all_fn[
+                      'TotRmsAbvGrd']))
+
+colnames(all_l1) <- c(
+  "LogLotFrontage", "LogOverallQual", "LogX1stFlrSF", "LogGrLivArea", "LogTotRmsAbvGrd")
+```
+
+```{r}
+all_6 <- cbind(
+    all_fn, all_l1)
+```
+
+Nous allons séparer nos données en ensembles d'entrainement et de test,
+en respectant les mêmes proportions que celles qui nous ont été données
+avant de leur appliquer notre régression multilinéaire.
+
+```{r}
+sample <- sample(
+  c(TRUE, FALSE), nrow(all_dummyf), replace=TRUE, prob=c(0.75, 0.25))
+train_RMSE <- all_6[sample, ]
+test_RMSE <- all_6[!sample, ]
+```
+
+```{r}
+test_RMSE
+```
+
+```{r}
+train_RMSE
+```
+
+```{r}
+droplevels(test_RMSE)
+```
+
+```{r}
+droplevels(train_RMSE)
+```
+
+```{r}
+test_RMSE$`.data.RoofMatl_Tar&Grv`
+```
+
+```{r}
+mod_RMSE <- lm(SalePrice~., train_RMSE)
+summary(mod_RMSE)$coefficient
+```
+
+```{r}
+levels(test_RMSE$.data.Condition2)
+```
+
+```{r}
+levels(train_RMSE$.data.Condition2)
+```
+
+```{r}
+test_RMSE_new <- test_RMSE # Dupliquons le dataset de test
+test_RMSE_new$Condition2[which(!(test_RMSE_new$Condition2 %in% unique(train_RMSE$Condition2)))] <- NA # Remplace les nouveaux niveaux par NA
+```
+
+```{r}
+test_RMSE_new$`RoofMatl_Tar&Grv`[which(!(test_RMSE_new$`RoofMatl_Tar&Grv` %in% unique(train_RMSE$`RoofMatl_Tar&Grv`)))] <- NA
+```
+
+```{r}
+test_RMSE_new$Heating[which(!(test_RMSE_new$Heating %in% unique(train_RMSE$Heating)))] <- NA
+```
+
+```{r}
+test_RMSE_new$RoofMatl[which(!(test_RMSE_new$RoofMatl %in% unique(train_RMSE$RoofMatl)))] <- NA
+```
+
+```{r}
+test_RMSE_new$Electrical[which(!(test_RMSE_new$Electrical %in% unique(train_RMSE$Electrical)))] <- NA
+```
+
+```{r}
+test_RMSE_new$Functional[which(!(test_RMSE_new$Functional %in% unique(train_RMSE$Functional)))] <- NA
+```
+
+```{r}
+test_RMSE_new$Exterior1st[which(!(test_RMSE_new$Exterior1st  %in% unique(train_RMSE$Exterior1st )))] <- NA
+test_RMSE_new$Exterior2nd[which(!(test_RMSE_new$Exterior2nd  %in% unique(train_RMSE$Exterior2nd)))] <- NA
+test_RMSE_new$RoofStyle[which(!(test_RMSE_new$RoofStyle %in% unique(train_RMSE$RoofStyle)))] <- NA
+```
+
+```{r}
+mod_RMSE2 <- lm(SalePrice~ . - Condition2 -`RoofMatl_Tar&Grv` -Heating -RoofMatl -Electrical -Functional -Exterior1st -Exterior2nd -RoofStyle, train_RMSE)
+
+```
+
+```{r}
+summary(mod_RMSE2)
+```
+
+```{r}
+rmse(test_RMSE$SalePrice,predict(mod_RMSE2, test_RMSE_new))
+```
+
+La RMSE sur le test de notre modèle préféré (après mise en ordre des
+features et adaptation à la structure du test) est de 41742.07 sur le
+Test.
+
+# 6. Discussion
+
+6.  Discussion. Quelles sont vos conclusions finales ?
+
+Normaliser la variable cible et retirer toutes les variables
+explicatives qui n'ont pas la même distribution que la variable cible,
+même transformées en leur logarithme détériorent les performances.
+
+Les outliers au sens de Bonferoni détériorent notre objectif qu'est la
+RMSE, même s'ils améliorent notre coefficient de détermination.
+
+Cependant, même s'il semble que l'on puisse considérer les variables
+comme indépendantes lorsque leurs corrélations sont inférieures à 0,8.
+
+Malgré tout, maintenir l'indépendance des variables explicatives, les
+sélectionner automatiquement, en retirer les valeurs nulles, ordonner
+les variables qualitatives les moins pertinentes ou standardiser les
+variables numériques n'améliorent pas le modèle.
+
+Par contre l'ajout des variables dont la distribution est log-normale,
+après normalisation et la transformation en variables factorielles en
+indicatrices améliorent notre modèle.
+
+Nous devons cependant faire attention à ne pas y inclure de
+transformation de la variable cible pour ne pas y inclure de data
+leakage.
+
+Notre modèle est limité par sa robustesse dans dans la mesure où il ne
+respecte pas l'hypothèse des erreurs gaussiennes.
+
+En conclusion, les techniques de régression avancées ont été
+efficacement utilisées pour prédire les prix de l'immobilier.
+
+Grâce à l'analyse de diverses variables, comme la localisation, la
+taille de la propriété et les caractéristiques du bâtiment, nous avons
+pu déterminer les facteurs les plus importants pour influencer les prix
+de l'immobilier.
+
+Les résultats de cette étude montrent que les techniques de régression
+avancées peuvent être utiles pour les agents immobiliers, les
+investisseurs et les acheteurs potentiels pour mieux comprendre les
+tendances du marché immobilier et prendre des décisions éclairées.
